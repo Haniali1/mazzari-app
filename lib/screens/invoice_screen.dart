@@ -196,3 +196,292 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
               ),
             ),
            
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+    );
+  }
+
+  Widget _buildHarvestSelector() {
+    if (_openHarvests.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 12),
+            Text('لا توجد قطافات مفتوحة', style: TextStyle(color: Colors.orange)),
+          ],
+        ),
+      );
+    }
+
+    return DropdownButtonFormField<Harvest>(
+      value: _selectedHarvest,
+      decoration: InputDecoration(
+        labelText: 'اختر القطافة',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      items: _openHarvests.map((harvest) {
+        final date = DateTime.parse(harvest.harvestDate);
+        return DropdownMenuItem(
+          value: harvest,
+          child: Text('${harvest.id} - ${harvest.crop} (${date.day}/${date.month})'),
+        );
+      }).toList(),
+      onChanged: (harvest) {
+        setState(() {
+          _selectedHarvest = harvest;
+          if (harvest?.trader != null) {
+            _traderController.text = harvest!.trader!;
+          }
+        });
+      },
+      validator: (v) => v == null ? 'اختر قطافة' : null,
+    );
+  }
+
+  Widget _buildDateField() {
+    return InkWell(
+      onTap: _selectDate,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'تاريخ الفاتورة',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          suffixIcon: const Icon(Icons.calendar_today),
+        ),
+        child: Text(
+          DateFormat('yyyy/MM/dd').format(_invoiceDate),
+          style: const TextStyle(fontSize: 16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+    ValueChanged<String>? onChanged,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      keyboardType: keyboardType,
+      validator: validator,
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildLineForm(int index, InvoiceLineForm line) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('سطر ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (_lines.length > 1)
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _removeLine(index),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: line.cropController,
+              decoration: InputDecoration(
+                labelText: 'نوع البضاعة',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              validator: (v) => v?.isEmpty ?? true ? 'أدخل النوع' : null,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: line.boxCountController,
+                    decoration: InputDecoration(
+                      labelText: 'عدد الفلين',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (v) => v?.isEmpty ?? true ? 'أدخل العدد' : null,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: line.weightController,
+                    decoration: InputDecoration(
+                      labelText: 'الوزن (كيلو)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (v) => v?.isEmpty ?? true ? 'أدخل الوزن' : null,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: line.priceController,
+              decoration: InputDecoration(
+                labelText: 'سعر الكيلو (ل.س)',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              keyboardType: TextInputType.number,
+              validator: (v) => v?.isEmpty ?? true ? 'أدخل السعر' : null,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'المجموع: ${line.lineTotal.toStringAsFixed(0)} ل.س',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummary() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          _SummaryRow('إجمالي المبالغ:', _totalBeforeCommission),
+          const SizedBox(height: 8),
+          _SummaryRow('العمولة ($_commissionRate%):', _commissionAmount, isNegative: true),
+          const Divider(),
+          _SummaryRow('المبلغ الصافي:', _netAmount, isTotal: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfitCalculation() {
+    if (_selectedHarvest == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _profit >= 0 ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _profit >= 0 ? Colors.green : Colors.red,
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'حساب الربح',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: _profit >= 0 ? Colors.green : Colors.red,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SummaryRow('المبلغ الصافي:', _netAmount),
+          const SizedBox(height: 8),
+          _SummaryRow('تكلفة الفلين:', _selectedHarvest!.boxTotalCost, isNegative: true),
+          const SizedBox(height: 8),
+          _SummaryRow('أجرة النقل:', _selectedHarvest!.transportCost, isNegative: true),
+          const Divider(),
+          _SummaryRow(
+            'الربح الصافي:',
+            _profit,
+            isTotal: true,
+            color: _profit >= 0 ? Colors.green : Colors.red,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final double value;
+  final bool isNegative;
+  final bool isTotal;
+  final Color? color;
+
+  const _SummaryRow(
+    this.label,
+    this.value, {
+    this.isNegative = false,
+    this.isTotal = false,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isTotal ? 18 : 16,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        Text(
+          '${isNegative ? '-' : ''}${value.toStringAsFixed(0)} ل.س',
+          style: TextStyle(
+            fontSize: isTotal ? 20 : 16,
+            fontWeight: FontWeight.bold,
+            color: color ?? (isNegative ? Colors.red : null),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class InvoiceLineForm {
+  final cropController = TextEditingController();
+  final boxCountController = TextEditingController();
+  final weightController = TextEditingController();
+  final priceController = TextEditingController();
+
+  double get lineTotal {
+    final weight = double.tryParse(weightController.text) ?? 0;
+    final price = double.tryParse(priceController.text) ?? 0;
+    return weight * price;
+  }
+}
