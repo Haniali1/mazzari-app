@@ -17,6 +17,9 @@ jobs:
           flutter-version: '3.19.0'
           channel: 'stable'
       
+      - name: Create Android folder
+        run: flutter create --platforms=android .
+      
       - name: Get dependencies
         run: flutter pub get
       
