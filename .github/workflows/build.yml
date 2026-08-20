@@ -20,6 +20,11 @@ jobs:
       - name: Create Android folder
         run: flutter create --platforms=android .
       
+      - name: Fix compileSdk
+        run: |
+          sed -i 's/compileSdk [0-9]*/compileSdk 36/g' android/app/build.gradle
+          sed -i 's/targetSdk [0-9]*/targetSdk 36/g' android/app/build.gradle
+      
       - name: Get dependencies
         run: flutter pub get
       
