@@ -32,7 +32,7 @@ class MazzariApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-        cardTheme: const CardThemeData(
+        cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
