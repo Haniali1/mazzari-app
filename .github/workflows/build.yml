@@ -8,14 +8,30 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.22.0'
           channel: 'stable'
+      
+      - name: Enable desktop support
+        run: |
+          flutter config --enable-android
+          flutter config --enable-linux
+      
+      - name: Create Android folder if missing
+        run: |
+          if [ ! -d "android" ]; then
+            flutter create --platforms=android .
+          fi
+      
+      - name: Clean project
+        run: flutter clean
       
       - name: Get dependencies
         run: flutter pub get
